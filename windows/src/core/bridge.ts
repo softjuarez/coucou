@@ -92,6 +92,13 @@ export const Bridge = {
   claudeCodePresent: () => call<boolean>("claude_code_present"),
   /** Copies a dropped file into the inbox. */
   ingestFile: (path: string) => callOrThrow<DroppedFile>("ingest_file", { path }),
+  /** Posts the dropped file to a destination's webhook — only from the Send button. */
+  sendToDestination: (
+    id: string, file: { name: string; path: string } | null, recipient: string, message: string,
+  ) =>
+    callOrThrow<void>("send_to_destination", {
+      id, path: file?.path ?? null, fileName: file?.name ?? null, recipient, message,
+    }),
   /** Only ever tells you whether a key exists — never its value. */
   secretPresent: (key: string) => call<boolean>("secret_present", { key }),
   secretSet: (key: string, value: string) => callOrThrow<void>("secret_set", { key, value }),

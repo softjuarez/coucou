@@ -197,6 +197,7 @@ export class Island {
         this.setView("prompt");
       },
       cancel: () => this.setView(State.defaultView()),
+      send: () => this.setView("send"),
     });
 
     this.clipEl = h(
@@ -855,12 +856,14 @@ export class Island {
     // The chat is the only view with a text field, so it is the only time the
     // island is allowed to take keyboard focus.
     if (this.lastSyncedView !== State.view) {
-      const wasChat = this.lastSyncedView === "prompt";
+      const typed = (v: IslandViewName | null) => v === "prompt" || v === "send";
+      const wasTyped = typed(this.lastSyncedView);
       this.lastSyncedView = State.view;
-      if (State.view === "prompt") {
+      if (typed(State.view)) {
+        const view = State.view;
         void Bridge.focusWindow(true);
-        window.setTimeout(() => this.views.get("prompt")?.focus?.(), 120);
-      } else if (wasChat) {
+        window.setTimeout(() => this.views.get(view)?.focus?.(), 120);
+      } else if (wasTyped) {
         void Bridge.focusWindow(false);
       }
     }

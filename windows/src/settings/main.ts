@@ -4,7 +4,7 @@
 
 import "./settings.css";
 import { Bridge, onEvent, type HookStatus } from "../core/bridge";
-import { DEFAULT_SETTINGS, type Settings } from "../core/state";
+import { DEFAULT_SETTINGS, type Destination, type Settings } from "../core/state";
 import { h, clear } from "../views/dom";
 
 let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -438,6 +438,106 @@ function generalSection(): HTMLElement {
   );
 }
 
+// ── Send to section ───────────────────────────────────────────────────────────
+
+/** A short id for a destination: its keychain keys are built from it. */
+function newDestinationId(): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+}
+
+/**
+ * Where a dropped file can be sent: a name and a webhook, usually an n8n
+ * workflow. The URL and the secret go to the keychain; only the name is kept
+ * in the settings.
+ */
+function sendSection(): HTMLElement {
+  const list = h("div", { style: "display:flex;flex-direction:column;gap:8px" });
+  const feedback = h("div", {});
+
+  const name = h("input", {
+    type: "text", placeholder: "Name — WhatsApp NexDelta", style: "flex:1 1 0;min-width:0", spellcheck: "false",
+  }) as HTMLInputElement;
+  const url = h("input", {
+    type: "password", placeholder: "Webhook URL — https://…", style: "flex:2 1 0;min-width:0",
+    autocomplete: "off", spellcheck: "false",
+  }) as HTMLInputElement;
+  const secret = h("input", {
+    type: "password", placeholder: "Secret (optional)", style: "flex:1 1 0;min-width:0",
+    autocomplete: "off", spellcheck: "false",
+  }) as HTMLInputElement;
+  const add = h("button", { class: "primary", text: "Add" });
+
+  function draw() {
+    clear(list);
+    const destinations: Destination[] = settings.destinations ?? [];
+    if (destinations.length === 0) {
+      list.append(h("span", { class: "hint", text: "No destination yet." }));
+    }
+    for (const d of destinations) {
+      const remove = h("button", { class: "danger", text: "Remove" });
+      remove.addEventListener("click", async () => {
+        clear(feedback);
+        try {
+          await Bridge.secretClear(`webhook-${d.id}-url`);
+          await Bridge.secretClear(`webhook-${d.id}-secret`);
+          settings.destinations = (settings.destinations ?? []).filter((x) => x.id !== d.id);
+          await save();
+          draw();
+        } catch (err) {
+          feedback.append(h("div", { class: "notice err", text: `Could not remove: ${String(err)}` }));
+        }
+      });
+      list.append(h("div", { class: "row" }, h("label", { text: d.name, style: "flex:1 1 auto" }), remove));
+    }
+  }
+
+  add.addEventListener("click", async () => {
+    clear(feedback);
+    const label = name.value.trim();
+    const address = url.value.trim();
+    if (!label || !/^https?:\/\//i.test(address)) {
+      feedback.append(h("div", {
+        class: "notice err",
+        text: "A name and a webhook URL starting with http:// or https:// are needed.",
+      }));
+      return;
+    }
+    const id = newDestinationId();
+    try {
+      await Bridge.secretSet(`webhook-${id}-url`, address);
+      if (secret.value) await Bridge.secretSet(`webhook-${id}-secret`, secret.value);
+      settings.destinations = [...(settings.destinations ?? []), { id, name: label }];
+      await save();
+      name.value = "";
+      url.value = "";
+      secret.value = "";
+      feedback.append(h("div", {
+        class: "notice ok",
+        text: "Added. The URL and the secret are in the Windows Credential Manager.",
+      }));
+      draw();
+    } catch (err) {
+      feedback.append(h("div", { class: "notice err", text: `Could not add: ${String(err)}` }));
+    }
+  });
+
+  draw();
+  return h(
+    "section",
+    {},
+    h("h2", {}, h("span", { text: "Send to" })),
+    h("span", {
+      class: "hint",
+      text: "Webhooks a dropped file can be sent to, typically an n8n workflow that passes it on to WhatsApp, Teams or anything else. The secret, if any, is sent in the X-Coucou-Secret header.",
+    }),
+    list,
+    h("div", { class: "row" }, name, url, secret, add),
+    feedback,
+  );
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -465,6 +565,7 @@ async function main() {
     claudeSection(status),
     apiSection(hasKey),
     integrationsSection(present),
+    sendSection(),
     generalSection(),
     h("div", {
       class: "hint",

@@ -7,11 +7,13 @@ mod hooks;
 mod integrations;
 mod island;
 mod log;
+mod office;
 mod pipe;
 mod platform;
 mod secrets;
 mod settings;
 mod tray;
+mod webhook;
 
 use std::process::Command;
 use std::sync::atomic::Ordering;
@@ -275,6 +277,29 @@ fn claude_code_present() -> bool {
     agent::executable().is_some()
 }
 
+/// "Send to…" — posts the dropped file to one of the user's webhooks. Only ever
+/// called from the Send button.
+#[tauri::command]
+async fn send_to_destination(
+    shared: State<'_, Shared>,
+    id: String,
+    path: Option<String>,
+    file_name: Option<String>,
+    recipient: String,
+    message: String,
+) -> Result<(), String> {
+    let name = shared
+        .settings
+        .lock()
+        .unwrap()
+        .destinations
+        .iter()
+        .find(|d| d.id == id)
+        .map(|d| d.name.clone())
+        .ok_or("That destination no longer exists.")?;
+    webhook::send(webhook::Delivery { id, name, file: path, file_name, recipient, message }).await
+}
+
 /// Copies a dropped file into the inbox and reports its name back.
 #[tauri::command]
 fn ingest_file(path: String) -> Result<DroppedFile, String> {
@@ -422,6 +447,7 @@ pub fn run() {
             chat_approval,
             claude_code_present,
             ingest_file,
+            send_to_destination,
             secret_present,
             secret_set,
             secret_clear,

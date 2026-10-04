@@ -25,7 +25,7 @@ use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::sync::oneshot;
 
 use crate::claude::{ChatContext, ChatReply};
-use crate::{files, island, log, platform, settings};
+use crate::{files, island, log, office, platform, settings};
 
 /// The built-in tools the chat gets. Nothing here runs a command or edits a
 /// file; `--restricted` keeps the file tools inside the working directories.
@@ -170,11 +170,23 @@ fn spawn(exe: &Path) -> Result<(Child, Session), String> {
 }
 
 /// The dropped file is named by its path: Claude Code reads it itself, so its
-/// bytes never pass through here.
+/// bytes never pass through here. An Office document is the exception — Claude
+/// Code cannot open one, so it is pointed at a text copy instead.
 fn compose(query: String, context: Option<ChatContext>) -> String {
     match context {
         Some(ChatContext::File { name, path }) => {
-            format!("The user dropped this file: {path} (named {name}). Read it if the request needs it.\n\n{query}")
+            let note = match office::text_copy(Path::new(&path)) {
+                None => format!("The user dropped this file: {path} (named {name}). Read it if the request needs it."),
+                Some(Ok(copy)) => format!(
+                    "The user dropped the document {name}. Its text was extracted to {}; read that file, not the \
+                     original. It is text only: layout, images and charts are not in it.",
+                    copy.display()
+                ),
+                Some(Err(why)) => format!(
+                    "The user dropped the document {name}, but its text could not be read: {why}. Tell them so."
+                ),
+            };
+            format!("{note}\n\n{query}")
         }
         Some(ChatContext::Window { app_name, title, url }) => {
             let url = url.map(|u| format!(", URL: {u}")).unwrap_or_default();

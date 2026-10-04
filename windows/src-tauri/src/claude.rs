@@ -218,6 +218,20 @@ fn file_block(path: &str) -> Option<Value> {
         }));
     }
 
+    // Word, Excel and PowerPoint: their text, cut to what a text file may be.
+    if let Some(extracted) = crate::office::extract_text(std::path::Path::new(path)) {
+        let mut text = extracted.ok()?;
+        if text.len() as u64 > MAX_INLINE_TEXT {
+            let mut cut = MAX_INLINE_TEXT as usize;
+            while !text.is_char_boundary(cut) {
+                cut -= 1;
+            }
+            text.truncate(cut);
+            text.push_str("\n\n[The document is longer; the rest was left out.]");
+        }
+        return Some(json!({ "type": "text", "text": format!("File contents:\n{text}") }));
+    }
+
     let len = std::fs::metadata(path).ok()?.len();
     if len > MAX_INLINE_TEXT {
         return None;

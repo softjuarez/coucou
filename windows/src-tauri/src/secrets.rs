@@ -18,8 +18,22 @@ pub const KNOWN_KEYS: &[&str] = &[
     "calcom-api-key",
 ];
 
+/// The key holding a "Send to…" destination's webhook `url` or its `secret`.
+/// Destinations are added by the user, so their keys cannot be listed above.
+pub fn webhook_key(id: &str, field: &str) -> String {
+    format!("webhook-{id}-{field}")
+}
+
+/// `webhook-<id>-url` or `webhook-<id>-secret`, with an id of 1 to 16 lowercase
+/// letters and digits — the only keys accepted besides the known ones.
+fn is_webhook_key(key: &str) -> bool {
+    let Some(rest) = key.strip_prefix("webhook-") else { return false };
+    let Some(id) = rest.strip_suffix("-url").or_else(|| rest.strip_suffix("-secret")) else { return false };
+    (1..=16).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+}
+
 fn entry(key: &str) -> Option<Entry> {
-    if !KNOWN_KEYS.contains(&key) {
+    if !KNOWN_KEYS.contains(&key) && !is_webhook_key(key) {
         return None;
     }
     Entry::new(SERVICE, key).ok()
@@ -48,4 +62,19 @@ pub fn clear(key: &str) -> Result<(), String> {
 
 pub fn present(key: &str) -> bool {
     get(key).is_some()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_well_formed_webhook_keys_are_accepted() {
+        assert!(is_webhook_key(&webhook_key("a1b2c3d4", "url")));
+        assert!(is_webhook_key(&webhook_key("a1b2c3d4", "secret")));
+        for key in ["webhook--url", "webhook-ABC-url", "webhook-a b-url", "webhook-abc-token", "webhook-abc",
+                    "webhook-aaaaaaaaaaaaaaaaa-url", "anthropic-api-key", "webhook-../x-url"] {
+            assert!(!is_webhook_key(key), "{key} is not a webhook key");
+        }
+    }
 }

@@ -9,6 +9,7 @@ import { State, type AgentTask } from "../core/state";
 import { washRGBA, type IslandViewName, type Wash } from "../core/layout";
 import { createMiniBot, pruneMiniBots } from "../mochi/minibots";
 import { buildPrompt } from "./chat";
+import { buildSend } from "./send";
 import { buildChoose, buildUpload, buildUploading } from "./upload";
 import { renderIntegrationCard, type IntegrationCardHooks } from "./integrations";
 
@@ -500,6 +501,7 @@ export function buildViews(
   map.set("note", buildNote());
   map.set("settings", buildSettings(actions));
   map.set("prompt", buildPrompt(onChatHeightChange, actions));
+  map.set("send", buildSend(actions));
   map.set("upload", buildUpload());
   map.set("uploading", buildUploading());
   map.set("choose", buildChoose(actions));

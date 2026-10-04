@@ -829,6 +829,58 @@ input[type="range"]::-webkit-slider-thumb {
   user-select: text;
 }
 
+/* "Send to…" — destination chips and the two fields. */
+.send-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.send-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.send-chip {
+  font: 500 12px var(--font);
+  padding: 4px 11px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--dim);
+  cursor: default;
+}
+
+.send-chip.on {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--ink);
+}
+
+.send-field {
+  width: 100%;
+  box-sizing: border-box;
+  font: 400 12.5px var(--font);
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 6px 10px;
+  outline: none;
+}
+
+.send-field::placeholder {
+  color: var(--dim-3);
+}
+
+.send-problem {
+  font: 400 11.5px var(--font);
+  color: #f4505e;
+  min-height: 14px;
+}
+
 /* What Claude Code is doing while it works on an answer. */
 .chat-tool {
   font: 400 11px var(--font);

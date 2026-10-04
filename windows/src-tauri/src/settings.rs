@@ -4,6 +4,15 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// A "Send to…" destination. Its webhook URL and secret are in the keychain,
+/// under keys built from `id` (see secrets::webhook_key).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Destination {
+    pub id: String,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -23,6 +32,9 @@ pub struct Settings {
     /// "auto" = Claude Code when it is installed, the API otherwise; "api" = always the API.
     #[serde(default = "default_chat_engine")]
     pub chat_engine: String,
+    /// Where a dropped file can be sent, in the order the user added them.
+    #[serde(default)]
+    pub destinations: Vec<Destination>,
 }
 
 fn default_chat_engine() -> String {
@@ -51,6 +63,7 @@ impl Default for Settings {
             hooks_installed: false,
             model: default_model(),
             chat_engine: default_chat_engine(),
+            destinations: Vec::new(),
         }
     }
 }

@@ -94,6 +94,13 @@ export interface Settings {
   model: string;
   /** "auto" = Claude Code when it is installed, the API otherwise; "api" = always the API. */
   chatEngine: "auto" | "api";
+  /** Where a dropped file can be sent. The webhook URL and secret live in the keychain. */
+  destinations: Destination[];
+}
+
+export interface Destination {
+  id: string;
+  name: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -109,6 +116,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hooksInstalled: false,
   model: "claude-opus-5",
   chatEngine: "auto",
+  destinations: [],
 };
 
 type Listener = () => void;
