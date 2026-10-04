@@ -829,6 +829,47 @@ input[type="range"]::-webkit-slider-thumb {
   user-select: text;
 }
 
+/* What Claude Code is doing while it works on an answer. */
+.chat-tool {
+  font: 400 11px var(--font);
+  color: var(--dim-3);
+}
+
+/* An action that sends or changes something, waiting for a click. */
+.chat-approval {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(245, 165, 36, 0.1);
+  border: 1px solid rgba(245, 165, 36, 0.28);
+}
+
+.chat-approval .what {
+  font: 500 12px var(--font);
+  color: var(--ink-2);
+}
+
+.chat-approval .detail {
+  font: 400 11.5px var(--mono);
+  color: #e8e9ec;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 96px;
+  overflow-y: auto;
+  user-select: text;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.chat-approval .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .typing {
   display: flex;
   gap: 4px;

@@ -20,6 +20,13 @@ pub struct Settings {
     /// Defaulted explicitly so a settings.json written by an older build still loads.
     #[serde(default = "default_model")]
     pub model: String,
+    /// "auto" = Claude Code when it is installed, the API otherwise; "api" = always the API.
+    #[serde(default = "default_chat_engine")]
+    pub chat_engine: String,
+}
+
+fn default_chat_engine() -> String {
+    "auto".into()
 }
 
 fn default_model() -> String {
@@ -43,6 +50,7 @@ impl Default for Settings {
             autostart: false,
             hooks_installed: false,
             model: default_model(),
+            chat_engine: default_chat_engine(),
         }
     }
 }

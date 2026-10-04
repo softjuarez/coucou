@@ -26,6 +26,8 @@ export interface ViewActions {
   setAutoClose(seconds: number): void;
   openSettingsWindow(): void;
   blip(): void;
+  /** The chat is waiting for a click on an action: keep the island open on it. */
+  holdForChat(waiting: boolean): void;
 }
 
 export interface ViewHost {
@@ -497,7 +499,7 @@ export function buildViews(
   map.set("confused", buildConfused());
   map.set("note", buildNote());
   map.set("settings", buildSettings(actions));
-  map.set("prompt", buildPrompt(onChatHeightChange));
+  map.set("prompt", buildPrompt(onChatHeightChange, actions));
   map.set("upload", buildUpload());
   map.set("uploading", buildUploading());
   map.set("choose", buildChoose(actions));

@@ -243,10 +243,31 @@ function apiSection(hasKey: boolean): HTMLElement {
 
   clearBtn.style.display = hasKey ? "" : "none";
 
+  // With Claude Code installed the chat runs through it — the user's plan and
+  // connectors — and the key above is only the fallback.
+  const engine = h("select", {}) as HTMLSelectElement;
+  engine.append(
+    h("option", { value: "auto", text: "Claude Code (your plan and connectors)" }),
+    h("option", { value: "api", text: "API key" }),
+  );
+  engine.value = settings.chatEngine ?? "auto";
+  engine.addEventListener("change", () => {
+    settings.chatEngine = engine.value as "auto" | "api";
+    void save();
+  });
+  const engineHint = h("span", { class: "hint" });
+  void Bridge.claudeCodePresent().then((present) => {
+    engineHint.textContent = present
+      ? "Claude Code found. Actions that send or change something ask you first."
+      : "Claude Code not found — the chat uses the API key.";
+  });
+
   return h(
     "section",
     {},
     h("h2", {}, dot, h("span", { text: "Claude" })),
+    h("div", { class: "row" }, h("label", { text: "Chat with" }), engine),
+    engineHint,
     state,
     h("div", { class: "row" }, h("label", { text: "API key" }), field, saveBtn, clearBtn),
     h("div", { class: "row" }, h("label", { text: "Model" }), model),

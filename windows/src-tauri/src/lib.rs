@@ -1,5 +1,6 @@
 // Coucou for Windows — app wiring and the commands the island calls.
 
+mod agent;
 mod claude;
 mod files;
 mod hooks;
@@ -20,6 +21,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 
+use agent::Agent;
 use claude::{Chat, ChatContext, ChatReply};
 use files::DroppedFile;
 use hooks::{HookPreview, HookStatus};
@@ -233,21 +235,44 @@ fn approval_decline(app: AppHandle, request_id: String) {
 
 // ── Chat, files and secrets ───────────────────────────────────────────────────
 
-/// One chat turn. The API key and any file bytes stay on the Rust side.
+/// One chat turn. With Claude Code installed the chat runs through it — the
+/// user's plan and connectors; otherwise through the API, where the key and any
+/// file bytes stay on the Rust side.
 #[tauri::command]
 async fn chat_send(
+    app: AppHandle,
     shared: State<'_, Shared>,
     chat: State<'_, Chat>,
+    agent: State<'_, Agent>,
     query: String,
     context: Option<ChatContext>,
 ) -> Result<ChatReply, String> {
-    let model = shared.settings.lock().unwrap().model.clone();
-    claude::send(&chat, &model, query, context).await
+    let (model, engine) = {
+        let settings = shared.settings.lock().unwrap();
+        (settings.model.clone(), settings.chat_engine.clone())
+    };
+    match agent::executable().filter(|_| engine != "api") {
+        Some(exe) => agent::send(&app, &agent, &exe, query, context).await,
+        None => claude::send(&chat, &model, query, context).await,
+    }
 }
 
 #[tauri::command]
-fn chat_reset(chat: State<Chat>) {
+fn chat_reset(chat: State<Chat>, agent: State<Agent>) {
     chat.reset();
+    agent.reset();
+}
+
+/// The Allow / Deny buttons of the chat's own approval card.
+#[tauri::command]
+fn chat_approval(agent: State<Agent>, request_id: String, allow: bool) {
+    agent.decide(&request_id, allow);
+}
+
+/// Whether Claude Code is installed, for the settings window.
+#[tauri::command]
+fn claude_code_present() -> bool {
+    agent::executable().is_some()
 }
 
 /// Copies a dropped file into the inbox and reports its name back.
@@ -374,6 +399,7 @@ pub fn run() {
         })
         .manage(Pending::default())
         .manage(Chat::default())
+        .manage(Agent::default())
         .invoke_handler(tauri::generate_handler![
             boot,
             save_settings,
@@ -393,6 +419,8 @@ pub fn run() {
             log_line,
             chat_send,
             chat_reset,
+            chat_approval,
+            claude_code_present,
             ingest_file,
             secret_present,
             secret_set,

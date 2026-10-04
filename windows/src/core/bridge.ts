@@ -85,6 +85,11 @@ export const Bridge = {
   chatSend: (query: string, context: ChatContext | null) =>
     callOrThrow<{ text: string }>("chat_send", { query, context }),
   chatReset: () => call<void>("chat_reset"),
+  /** Allow / Deny on the chat's own approval card. */
+  chatApproval: (requestId: string, allow: boolean) =>
+    call<void>("chat_approval", { requestId, allow }),
+  /** Whether Claude Code is installed — the chat then runs through it. */
+  claudeCodePresent: () => call<boolean>("claude_code_present"),
   /** Copies a dropped file into the inbox. */
   ingestFile: (path: string) => callOrThrow<DroppedFile>("ingest_file", { path }),
   /** Only ever tells you whether a key exists — never its value. */
@@ -111,6 +116,12 @@ export interface IntegrationUpdate {
 export type ChatContext =
   | { kind: "file"; name: string; path: string }
   | { kind: "window"; appName: string; title: string; url?: string };
+
+/** What the chat hears while a turn through Claude Code is running. */
+export type ChatProgress =
+  | { kind: "delta"; text: string }
+  | { kind: "tool"; label: string }
+  | { kind: "approval"; requestId: string; label: string; detail: string };
 
 export interface DroppedFile {
   name: string;

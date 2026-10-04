@@ -147,6 +147,11 @@ export class Island {
         State.setPillBadge("integration_claude", null);
         this.setView(State.defaultView());
       },
+      holdForChat: (waiting) => {
+        State.isPinned = waiting;
+        if (waiting) this.alert("prompt");
+        else this.dropPin();
+      },
       toggleSound: () => {
         State.settings.soundEnabled = !State.settings.soundEnabled;
         Sound.setEnabled(State.settings.soundEnabled);
